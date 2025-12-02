@@ -1,6 +1,6 @@
 import React from 'react';
 import { AspectRatio } from '../types';
-import { Square, Monitor, Smartphone, RectangleHorizontal } from 'lucide-react';
+import { Square, Monitor, Smartphone, LayoutTemplate } from 'lucide-react';
 
 interface AspectRatioSelectorProps {
   value: AspectRatio;
@@ -14,7 +14,7 @@ export const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = ({ value,
     { val: AspectRatio.SQUARE, label: '1:1 Square', icon: Square },
     { val: AspectRatio.LANDSCAPE, label: '16:9 Landscape', icon: Monitor },
     { val: AspectRatio.PORTRAIT, label: '9:16 Portrait', icon: Smartphone },
-    { val: AspectRatio.WIDE, label: '2:1 Wide', icon: RectangleHorizontal },
+    { val: AspectRatio.STANDARD, label: '4:3 Standard', icon: LayoutTemplate },
   ];
 
   return (

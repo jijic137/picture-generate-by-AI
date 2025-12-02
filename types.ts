@@ -2,7 +2,7 @@ export enum AspectRatio {
   SQUARE = "1:1",
   LANDSCAPE = "16:9",
   PORTRAIT = "9:16",
-  WIDE = "2:1"
+  STANDARD = "4:3"
 }
 
 export enum ImageStyle {
