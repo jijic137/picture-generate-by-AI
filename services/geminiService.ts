@@ -1,50 +1,80 @@
 import { GoogleGenAI } from "@google/genai";
-import { AspectRatio, GenerationResult } from "../types";
+import { AspectRatio, GenerationResult, ImageStyle } from "../types";
 
-// Initialize the client.
-// In a real production full-stack app, this code would reside on a Node.js/Python server
-// to keep the API_KEY hidden from the browser network tab.
-// For this SPA environment, we use the process.env injection provided by the runtime.
+// ==================================================================================
+// BACKEND SIMULATION
+// ==================================================================================
+// In a real architecture, this file would be a Server Action (Next.js) or 
+// a controller in an Express/Python backend.
+// The API_KEY is strictly accessed here and should NEVER be exposed to the client bundle
+// in a production build.
+// ==================================================================================
+
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+const enhancePromptWithStyle = (prompt: string, style: ImageStyle): string => {
+  if (style === ImageStyle.NONE) return prompt;
+  
+  const stylePrompts: Record<ImageStyle, string> = {
+    [ImageStyle.NONE]: "",
+    [ImageStyle.PHOTOREALISTIC]: ", highly detailed, photorealistic, 8k resolution, raw photography, sharp focus",
+    [ImageStyle.CINEMATIC]: ", cinematic lighting, movie scene, dramatic atmosphere, color graded, wide angle, 4k",
+    [ImageStyle.ANIME]: ", anime style, studio ghibli inspired, vibrant colors, cel shaded, detailed background",
+    [ImageStyle.CYBERPUNK]: ", cyberpunk, neon lights, futuristic, high contrast, sci-fi atmosphere, chromatic aberration",
+    [ImageStyle.OIL_PAINTING]: ", oil painting texture, visible brushstrokes, classic art style, rich colors",
+    [ImageStyle.d3_RENDER]: ", 3D render, unreal engine 5, octane render, ray tracing, physically based rendering",
+    [ImageStyle.MINIMALIST]: ", minimalist, flat design, vector art, simple shapes, clean lines, pastel colors"
+  };
+
+  return `${prompt}${stylePrompts[style] || ""}`;
+};
+
 /**
- * Generates an image using the Gemini 2.5 Flash Image model.
- * 
- * @param prompt The user's description of the image.
- * @param aspectRatio The desired aspect ratio (e.g., "16:9").
- * @returns A promise resolving to the image URL (base64) and optional text.
+ * Server-side function to generate image.
+ * This acts as the secure bridge between the frontend request and the Google Gemini API.
  */
-export const generateImageFromPrompt = async (
-  prompt: string, 
-  aspectRatio: AspectRatio
+export const generateImageOnServer = async (
+  originalPrompt: string, 
+  aspectRatio: AspectRatio,
+  style: ImageStyle
 ): Promise<GenerationResult> => {
   try {
+    // 1. Validate Input (Basic Security)
+    if (!originalPrompt || originalPrompt.length > 1000) {
+      throw new Error("Invalid prompt length.");
+    }
+
+    // 2. Enhance Prompt based on style selection
+    const finalPrompt = enhancePromptWithStyle(originalPrompt, style);
+    
+    console.log(`[Server] Generating with prompt: ${finalPrompt}`);
+
+    // 3. Call Gemini API
+    // Using 'gemini-2.5-flash-image' for fast, high-quality generation
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
-          { text: prompt }
+          { text: finalPrompt }
         ]
       },
       config: {
         imageConfig: {
           aspectRatio: aspectRatio,
-          // note: imageSize is only supported in gemini-3-pro-image-preview
         }
       }
     });
 
+    // 4. Process Response
     let imageUrl: string | null = null;
     let textMessage: string = "";
 
-    // Parse the response parts. Gemini may return text along with the image.
     if (response.candidates && response.candidates.length > 0) {
       const parts = response.candidates[0].content.parts;
       
       for (const part of parts) {
         if (part.inlineData) {
           const base64EncodeString = part.inlineData.data;
-          // Construct the data URI
           imageUrl = `data:${part.inlineData.mimeType};base64,${base64EncodeString}`;
         } else if (part.text) {
           textMessage += part.text;
@@ -53,13 +83,13 @@ export const generateImageFromPrompt = async (
     }
 
     if (!imageUrl) {
-      throw new Error("No image data received from the model.");
+      throw new Error("The model did not return an image. It might have been blocked by safety filters.");
     }
 
     return { imageUrl, textMessage };
 
   } catch (error: any) {
-    console.error("Gemini Image Generation Error:", error);
-    throw new Error(error.message || "Failed to generate image.");
+    console.error("Backend Error:", error);
+    throw new Error(error.message || "Failed to process request on server.");
   }
 };

@@ -2,8 +2,18 @@ export enum AspectRatio {
   SQUARE = "1:1",
   LANDSCAPE = "16:9",
   PORTRAIT = "9:16",
-  STANDARD_LANDSCAPE = "4:3",
-  STANDARD_PORTRAIT = "3:4"
+  WIDE = "2:1"
+}
+
+export enum ImageStyle {
+  NONE = "None",
+  PHOTOREALISTIC = "Photorealistic",
+  CINEMATIC = "Cinematic",
+  ANIME = "Anime",
+  CYBERPUNK = "Cyberpunk",
+  OIL_PAINTING = "Oil Painting",
+  d3_RENDER = "3D Render",
+  MINIMALIST = "Minimalist"
 }
 
 export interface GenerationResult {
