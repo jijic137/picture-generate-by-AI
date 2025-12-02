@@ -2,6 +2,7 @@
   "name": "lumina-ai-studio",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "AI Image Generation Studio",
   "scripts": {
     "dev": "vite",
