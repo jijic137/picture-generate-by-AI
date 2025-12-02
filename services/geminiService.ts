@@ -25,10 +25,6 @@ export const generateImageOnServer = async (
     // Check if the response content type is JSON
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") === -1) {
-      // If we get HTML back, it usually means:
-      // 1. Local: running 'npm run dev' (Vite) instead of 'vercel dev' (Serverless)
-      // 2. Prod: The server crashed (500) and Vercel sent a generic HTML error page
-      // 3. Prod: The API route wasn't found (404) and rewrote to index.html
       const text = await response.text();
       console.error("Received non-JSON response from API:", text.substring(0, 200));
       
@@ -48,6 +44,7 @@ export const generateImageOnServer = async (
     const data = await response.json();
 
     if (!response.ok) {
+      // Pass through specific backend messages
       throw new Error(data.message || `Server error: ${response.status}`);
     }
 

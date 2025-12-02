@@ -36,3 +36,10 @@ vercel dev
 ```
 
 The app will be available at http://localhost:3000.
+
+## Troubleshooting
+
+### Error: Quota Exceeded / Limit: 0
+If you receive an error message about `Quota exceeded` or `limit: 0`, this is a restriction from Google, not the app.
+- **Billing Required:** The `gemini-2.5-flash-image` model often requires you to enable Billing on your Google Cloud Project, even if you are using the free tier quota.
+- **Solution:** Go to [Google AI Studio Billing](https://aistudio.google.com/app/billing) or the Google Cloud Console and verify a payment method is attached to your project.

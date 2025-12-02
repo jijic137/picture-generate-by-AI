@@ -53,7 +53,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 3. Validation: Aspect Ratio
-    // Fallback to 1:1 if the provided ratio is not supported to prevent API errors
     let validAspectRatio = aspectRatio;
     if (!SUPPORTED_RATIOS.includes(aspectRatio)) {
       console.warn(`Unsupported aspect ratio received: ${aspectRatio}. Defaulting to 1:1.`);
@@ -98,10 +97,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (!imageUrl) {
-      // Sometimes safety filters block the image
       console.warn("No image URL found in response", JSON.stringify(response));
       return res.status(500).json({ 
-        message: 'No image was generated. The prompt might have triggered safety filters or the service is busy.' 
+        message: 'No image was generated. The prompt might have triggered safety filters.' 
       });
     }
 
@@ -109,7 +107,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error: any) {
     console.error("Backend Error:", error);
-    // Return the actual error message to help debugging (be careful in prod, but helpful now)
+    
+    // Check for Quota/Billing errors (429)
+    const isQuotaError = 
+        error.status === 429 || 
+        error.code === 429 || 
+        (error.message && error.message.toLowerCase().includes("quota"));
+
+    if (isQuotaError) {
+        return res.status(429).json({ 
+            message: "Google API Limit Exceeded. If you see 'limit: 0', you likely need to add a billing method to your Google Cloud Project to use this model, even on the free tier.",
+            details: error.message
+        });
+    }
+
     return res.status(500).json({ 
       message: error.message || 'Internal Server Error',
       details: 'Check Vercel Function Logs for more info.'
