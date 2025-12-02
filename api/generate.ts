@@ -2,7 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Switch to Stable Diffusion XL 1.0 Base
 // This model is extremely reliable on the Hugging Face Free Inference API compared to the heavier FLUX models.
-const HF_MODEL_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0";
+// Updated endpoint to router.huggingface.co as per deprecation notice.
+const HF_MODEL_URL = "https://router.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0";
 
 const STYLE_PROMPTS: Record<string, string> = {
   "None": "",
