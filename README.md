@@ -1,28 +1,35 @@
 # Lumina AI Studio
 
+An elegant AI image generation app powered by **FLUX.1-schnell** via Hugging Face.
+
 ## Setup & Configuration
 
-### 1. Get Google Gemini API Key
-- Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
-- Create a new API Key.
+### 1. Get Hugging Face Token (Free)
+1. Register or Login at [Hugging Face](https://huggingface.co/).
+2. Go to [Settings -> Access Tokens](https://huggingface.co/settings/tokens).
+3. Click **Create new token**.
+4. Select **Read** permissions (or Write, both work).
+5. Copy your new token (starts with `hf_`).
 
 ### 2. Configure Environment Variables
+
+**For Vercel Deployment:**
+1. Go to your project settings on Vercel.
+2. Navigate to **Environment Variables**.
+3. Add a new variable:
+   - **Key**: `API_KEY`
+   - **Value**: `Your_Hugging_Face_Token_Here`
+4. **Redeploy** your application for the changes to take effect.
 
 **For Local Development:**
 1. Create a file named `.env` in the root directory.
 2. Add your key:
    ```env
-   API_KEY=your_google_gemini_api_key_here
+   API_KEY=hf_xxxxxxxxxxxxxxxxxxxxxxxx
    ```
 
-**For Vercel Deployment:**
-1. Go to your project settings on Vercel.
-2. Navigate to **Environment Variables**.
-3. Add a new variable with Key `API_KEY` and your actual API key as the Value.
-4. **Redeploy** your application for the changes to take effect.
-
 ### 3. Running Locally
-**Important:** Because this project uses Serverless Functions for the backend, you must use the Vercel CLI to run it locally. `npm run dev` will only start the frontend and API calls will fail.
+**Important:** Because this project uses Serverless Functions for the backend, you must use the Vercel CLI.
 
 ```bash
 # 1. Install dependencies
@@ -39,7 +46,9 @@ The app will be available at http://localhost:3000.
 
 ## Troubleshooting
 
-### Error: Quota Exceeded / Limit: 0
-If you receive an error message about `Quota exceeded` or `limit: 0`, this is a restriction from Google, not the app.
-- **Billing Required:** The `gemini-2.5-flash-image` model often requires you to enable Billing on your Google Cloud Project, even if you are using the free tier quota.
-- **Solution:** Go to [Google AI Studio Billing](https://aistudio.google.com/app/billing) or the Google Cloud Console and verify a payment method is attached to your project.
+### "Model is loading" (503 Error)
+Since we are using the free Hugging Face Inference API, the model ("cold boot") might take a few seconds to load if it hasn't been used recently.
+- **Solution**: Just wait 20-30 seconds and click "Generate" again. It will work once loaded.
+
+### "Rate limit exceeded"
+The free API has rate limits. If you generate too many images too quickly, just wait a minute before trying again.

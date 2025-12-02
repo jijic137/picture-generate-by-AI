@@ -1,20 +1,26 @@
-import { GoogleGenAI } from "@google/genai";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Define styles here to avoid complex relative import issues in serverless environment
+// We use FLUX.1-schnell because it's fast, open (Apache 2.0), and works great on free inference API.
+const HF_MODEL_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell";
+
 const STYLE_PROMPTS: Record<string, string> = {
   "None": "",
-  "Photorealistic": ", highly detailed, photorealistic, 8k resolution, raw photography, sharp focus",
-  "Cinematic": ", cinematic lighting, movie scene, dramatic atmosphere, color graded, wide angle, 4k",
-  "Anime": ", anime style, studio ghibli inspired, vibrant colors, cel shaded, detailed background",
-  "Cyberpunk": ", cyberpunk, neon lights, futuristic, high contrast, sci-fi atmosphere, chromatic aberration",
-  "Oil Painting": ", oil painting texture, visible brushstrokes, classic art style, rich colors",
-  "3D Render": ", 3D render, unreal engine 5, octane render, ray tracing, physically based rendering",
-  "Minimalist": ", minimalist, flat design, vector art, simple shapes, clean lines, pastel colors"
+  "Photorealistic": ", highly detailed, photorealistic, 8k resolution, raw photography, sharp focus, realistic texture",
+  "Cinematic": ", cinematic lighting, movie scene, dramatic atmosphere, color graded, wide angle, 4k, anamorphic lens",
+  "Anime": ", anime style, studio ghibli inspired, vibrant colors, cel shaded, detailed background, 2d animation",
+  "Cyberpunk": ", cyberpunk, neon lights, futuristic, high contrast, sci-fi atmosphere, chromatic aberration, blade runner style",
+  "Oil Painting": ", oil painting texture, visible brushstrokes, classic art style, rich colors, canvas texture",
+  "3D Render": ", 3D render, unreal engine 5, octane render, ray tracing, physically based rendering, hyper detailed",
+  "Minimalist": ", minimalist, flat design, vector art, simple shapes, clean lines, pastel colors, high key"
 };
 
-// Supported aspect ratios by Gemini 2.5 Flash Image
-const SUPPORTED_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9"];
+// Map AspectRatio enum to pixel dimensions (FLUX works best with multiples of 8/16)
+const DIMENSIONS: Record<string, { width: number; height: number }> = {
+  "1:1": { width: 1024, height: 1024 },
+  "16:9": { width: 1024, height: 576 }, // Landscape
+  "9:16": { width: 576, height: 1024 }, // Portrait
+  "4:3": { width: 1024, height: 768 },  // Standard
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS Headers
@@ -26,104 +32,80 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // Handle OPTIONS request for CORS preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // Only allow POST
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
 
   try {
     const { prompt, aspectRatio, style } = req.body;
 
-    // 1. Validation: API Key
+    // 1. Check API Key
     if (!process.env.API_KEY) {
-      console.error("Server Error: API_KEY is missing in environment variables.");
       return res.status(500).json({ 
-        message: 'Configuration Error: The server is missing the API_KEY. Please set it in your Vercel project settings.' 
+        message: 'Server Configuration Error: Missing API_KEY. Please set your Hugging Face Token in Vercel settings.' 
       });
     }
 
-    // 2. Validation: Prompt
-    if (!prompt) {
-      return res.status(400).json({ message: 'Prompt is required' });
-    }
+    if (!prompt) return res.status(400).json({ message: 'Prompt is required' });
 
-    // 3. Validation: Aspect Ratio
-    let validAspectRatio = aspectRatio;
-    if (!SUPPORTED_RATIOS.includes(aspectRatio)) {
-      console.warn(`Unsupported aspect ratio received: ${aspectRatio}. Defaulting to 1:1.`);
-      validAspectRatio = "1:1";
-    }
-
-    // Initialize Gemini API
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-    // Enhance prompt
+    // 2. Prepare Prompt & Dimensions
     const styleSuffix = STYLE_PROMPTS[style] || "";
     const finalPrompt = `${prompt}${styleSuffix}`;
+    
+    // Default to square if ratio not found
+    const dims = DIMENSIONS[aspectRatio] || DIMENSIONS["1:1"];
 
-    console.log(`[Server] Generating with model 'gemini-2.5-flash-image'. Ratio: ${validAspectRatio}`);
+    console.log(`[Server] Requesting Hugging Face: ${HF_MODEL_URL}`);
+    console.log(`[Server] Size: ${dims.width}x${dims.height}, Style: ${style}`);
 
-    // Call Model
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [{ text: finalPrompt }]
+    // 3. Call Hugging Face API
+    const response = await fetch(HF_MODEL_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.API_KEY}`,
+        'Content-Type': 'application/json',
       },
-      config: {
-        imageConfig: {
-          aspectRatio: validAspectRatio,
+      body: JSON.stringify({
+        inputs: finalPrompt,
+        parameters: {
+            width: dims.width,
+            height: dims.height,
+            // FLUX specific:
+            guidance_scale: 3.5, 
+            num_inference_steps: 4, // Schnell is fast, 4 steps is usually enough
+            seed: Math.floor(Math.random() * 1000000)
         }
-      }
+      }),
     });
 
-    // Extract Image
-    let imageUrl: string | null = null;
-    let textMessage: string = "";
-
-    if (response.candidates && response.candidates.length > 0) {
-      const parts = response.candidates[0].content.parts;
-      for (const part of parts) {
-        if (part.inlineData) {
-          imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-        } else if (part.text) {
-          textMessage += part.text;
-        }
+    // 4. Handle Response
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[HF API Error]", response.status, errorText);
+      
+      let userMsg = "Failed to generate image.";
+      
+      if (response.status === 503) {
+        userMsg = "The model is currently loading (cold start). Please try again in 20 seconds.";
+      } else if (response.status === 401 || response.status === 403) {
+        userMsg = "Invalid API Key. Please check your Hugging Face token.";
+      } else if (errorText.includes("rate limit")) {
+        userMsg = "Rate limit exceeded. Please wait a moment.";
       }
+
+      return res.status(response.status).json({ message: userMsg, details: errorText });
     }
 
-    if (!imageUrl) {
-      console.warn("No image URL found in response", JSON.stringify(response));
-      return res.status(500).json({ 
-        message: 'No image was generated. The prompt might have triggered safety filters.' 
-      });
-    }
+    // 5. Convert Binary Image to Base64
+    const imageBuffer = await response.arrayBuffer();
+    const base64Image = Buffer.from(imageBuffer).toString('base64');
+    const imageUrl = `data:image/jpeg;base64,${base64Image}`;
 
-    return res.status(200).json({ imageUrl, textMessage });
+    return res.status(200).json({ imageUrl, textMessage: "Generated with FLUX.1-schnell" });
 
   } catch (error: any) {
     console.error("Backend Error:", error);
-    
-    // Check for Quota/Billing errors (429)
-    const isQuotaError = 
-        error.status === 429 || 
-        error.code === 429 || 
-        (error.message && error.message.toLowerCase().includes("quota"));
-
-    if (isQuotaError) {
-        return res.status(429).json({ 
-            message: "Google API Limit Exceeded. If you see 'limit: 0', you likely need to add a billing method to your Google Cloud Project to use this model, even on the free tier.",
-            details: error.message
-        });
-    }
-
     return res.status(500).json({ 
       message: error.message || 'Internal Server Error',
-      details: 'Check Vercel Function Logs for more info.'
     });
   }
 }

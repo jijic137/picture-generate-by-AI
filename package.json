@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "latest",
     "@vercel/node": "^3.0.0",
     "lucide-react": "^0.300.0",
     "react": "^18.2.0",
