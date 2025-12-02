@@ -1,0 +1,5 @@
+{
+  "name": "Lumina AI Studio",
+  "description": "An elegant, high-performance AI image generation studio powered by Google Gemini models.",
+  "requestFramePermissions": []
+}
