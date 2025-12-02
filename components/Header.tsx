@@ -19,7 +19,7 @@ export const Header: React.FC = () => {
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 rounded-full border border-zinc-800">
             <Zap className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-            <span className="text-xs font-medium text-zinc-400">Powered by FLUX.1</span>
+            <span className="text-xs font-medium text-zinc-400">Powered by SDXL 1.0</span>
           </div>
         </div>
       </div>
