@@ -1,20 +1,38 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Lumina AI Studio
 
-# Run and deploy your AI Studio app
+## Setup & Configuration
 
-This contains everything you need to run your app locally.
+### 1. Get Google Gemini API Key
+- Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
+- Create a new API Key.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1o0qPoZnFHSwURvg2eWxi_v7N5McIOuPa
+### 2. Configure Environment Variables
 
-## Run Locally
+**For Local Development:**
+1. Create a file named `.env` in the root directory.
+2. Add your key:
+   ```env
+   API_KEY=your_google_gemini_api_key_here
+   ```
 
-**Prerequisites:**  Node.js
+**For Vercel Deployment:**
+1. Go to your project settings on Vercel.
+2. Navigate to **Environment Variables**.
+3. Add a new variable with Key `API_KEY` and your actual API key as the Value.
+4. **Redeploy** your application for the changes to take effect.
 
+### 3. Running Locally
+**Important:** Because this project uses Serverless Functions for the backend, you must use the Vercel CLI to run it locally. `npm run dev` will only start the frontend and API calls will fail.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Install Vercel CLI globally (if not installed)
+npm install -g vercel
+
+# 3. Run the app
+vercel dev
+```
+
+The app will be available at http://localhost:3000.
